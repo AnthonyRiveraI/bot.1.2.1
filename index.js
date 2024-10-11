@@ -1,28 +1,42 @@
 const express = require("express");
 const mongoose = require('mongoose'); 
 const rateLimit = require("express-rate-limit");
-const {currentTime, getCurrentTime} = require('./utility_tools/datetime')
+const { currentTime, getCurrentTime } = require('./utility_tools/datetime');
 const axios = require('axios');  // Importamos axios
 require("dotenv").config();
-console.log(process.env.MONGO_URI);
+const path = require('path');
 const { connectDB } = require('./db');
 const { Thread } = require('./db');  
 const { client, addThread, checkRunStatus, processToolCalls } = require('./coreFunctions');
 const { load_tools_from_directory } = require('./tools'); // Importar cliente y funciones
+
 const app = express();
 app.use(express.json());
-const path = require('path');
+
 const toolsDirectory = path.join(__dirname, 'tools');
-const { tool_configs, function_map } = load_tools_from_directory(toolsDirectory);
-// Ahora puedes usar tool_configs y function_map
+let tool_configs, function_map;
+
+try {
+    ({ tool_configs, function_map } = load_tools_from_directory(toolsDirectory));
+} catch (error) {
+    console.error('Error al cargar las herramientas:', error.message);
+    process.exit(1);  // Salir si no se puede cargar las herramientas
+}
+
 console.log('Configuraciones de herramientas:', tool_configs);
 console.log('Funciones disponibles:', Object.keys(function_map));
 
+(async () => {
+    try {
+        await connectDB();
+        console.log('Conexión a MongoDB establecida.');
+    } catch (error) {
+        console.error('Error al conectar a MongoDB:', error.message);
+        process.exit(1);
+    }
+})();
 
-connectDB();
 const VALID_TOKEN = process.env.VALID_TOKEN;
-tool_data = load_tools_from_directory('tools')
-
 
 // Middleware para verificar la autenticación del token
 const verifyHeaders = (req, res, next) => {
@@ -48,13 +62,11 @@ const chatLimiter = rateLimit({
     message: "Has alcanzado el límite de 100 mensajes por día"
 });
 
-
-
 // Ruta para iniciar una nueva conversación
 app.get('/start', async (req, res) => {
     const platform = req.query.platform || 'Not Specified';
     const username = req.query.username || 'Not Specified';
- 
+
     try {
         console.log(`Iniciando nueva conversación desde la plataforma: ${platform} para el usuario: ${username}`);
 
@@ -65,6 +77,7 @@ app.get('/start', async (req, res) => {
             console.log(`Usando hilo existente con ID: ${existingThread.thread_id} para el usuario: ${username}`);
             return res.status(200).json({ thread_id: existingThread.thread_id, message: 'Usando hilo existente' });
         }
+        
         // Crear un nuevo thread en OpenAI
         const openAIThread = await client.beta.threads.create();
         if (!openAIThread || !openAIThread.id) {
@@ -72,10 +85,10 @@ app.get('/start', async (req, res) => {
         }        
 
         const timeResponse = await getCurrentTime();
-
         if (timeResponse.error) {
             throw new Error(timeResponse.error);
         }
+        
         const currentTime = timeResponse.message.split('es: ')[1]; // Extraemos la hora del mensaje
         // Crear un nuevo thread en la base de datos con el thread_id proporcionado por OpenAI
         const newThread = new Thread({
@@ -97,13 +110,16 @@ app.get('/start', async (req, res) => {
     }
 });
 
-
 app.post('/chat', chatLimiter, verifyHeaders, async (req, res) => {
     const { thread_id, message } = req.body;
 
     if (!thread_id) {
         console.error("Error: Faltante thread_id");
         return res.status(400).json({ error: "Faltante thread_id" });
+    }
+
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "El mensaje es obligatorio y debe ser una cadena." });
     }
 
     try {
@@ -148,7 +164,7 @@ app.post('/check', verifyHeaders, async (req, res) => {
     }
 
     try {
-        const tool_data= {
+        const tool_data = {
             function_map: {
                 conversation_summary_request: (args) => {
                     // Implementa la lógica de la función aquí
@@ -157,6 +173,7 @@ app.post('/check', verifyHeaders, async (req, res) => {
                 // Otras funciones que podrían ser necesarias
             }
         };
+        
         const result = await processToolCalls(client, thread_id, run_id, tool_data);
         return res.status(200).json(result);
     } catch (error) {
@@ -164,7 +181,6 @@ app.post('/check', verifyHeaders, async (req, res) => {
         return res.status(500).json({ error: 'Error al verificar el estado de la ejecución' });
     }
 });
-
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Servidor corriendo en el puerto ${port}`));
