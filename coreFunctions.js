@@ -39,7 +39,7 @@ const verifyApiKey = (req, res, next) => {
 
 
 // Función para obtener la hora actual desde la API de World Time
-const getCurrentTime = async (timezone = 'America/Mexico_City') => {
+const getCurrentTime = async (timezone = 'America/Lima') => {
     return new Promise((resolve, reject) => {
         const url = `https://worldtimeapi.org/api/timezone/${timezone}`;
         
