@@ -68,13 +68,13 @@ const getCurrentTime = async (timezone = 'America/Mexico_City') => {
 
 
 // Función para agregar un hilo a la base de datos
-async function addThread(thread_id, platform, phone_number) {
+async function addThread(thread_id, platform, username) {
     try {
         const currentTime = await getCurrentTime();
         const newThread = new Thread({
             thread_id,
             platform,
-            phone_number,
+            username,
             timestamp: new Date(currentTime),
             status: 'Arrived'
         });
