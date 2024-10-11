@@ -1,5 +1,6 @@
-const axios = require('axios');
-const { unescape } = require('querystring');
+const fs = require('fs');
+const path = require('path');
+
 
 // URL del Webhook para enviar los datos
 const WEBHOOK_URL = "https://hook.us2.make.com/349qjcw5disoaprcutnjy0vyon0g73zg";
