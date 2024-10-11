@@ -138,7 +138,15 @@ app.post('/check', verifyHeaders, async (req, res) => {
     }
 
     try {
-        const toolData = {};  // toolData definido en algún lugar
+        const toolData = {
+            function_map: {
+                conversation_summary_request: (args) => {
+                    // Implementa la lógica de la función aquí
+                    return { summary: "This is a placeholder summary." };
+                }
+                // Otras funciones que podrían ser necesarias
+            }
+        };
         const result = await processToolCalls(client, thread_id, run_id, toolData);
         return res.status(200).json(result);
     } catch (error) {
@@ -146,6 +154,7 @@ app.post('/check', verifyHeaders, async (req, res) => {
         return res.status(500).json({ error: 'Error al verificar el estado de la ejecución' });
     }
 });
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Servidor corriendo en el puerto ${port}`));
