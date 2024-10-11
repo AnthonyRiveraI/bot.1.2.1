@@ -193,35 +193,32 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
     return { response: "timeout", status: "timeout" };
 };
 
-
-
-// Función para cargar herramientas desde un directorio
-const load_tools_from_directory = (directory) => {
+const loadToolsFromDirectory = (directory) => {
     const tool_data = { tool_configs: [], function_map: {} };
 
+    // Asegurarse de que el directorio sea absoluto
+    const toolsDirectory = path.resolve(directory);
+
     // Leer todos los archivos del directorio
-    fs.readdirSync(directory).forEach(file => {
-        // Filtrar solo archivos con extensión .js
+    fs.readdirSync(toolsDirectory).forEach(file => {
         if (file.endsWith('.js')) {
-            const tool = require(path.join(directory, file)); // Cargar el módulo
+            const tool = require(path.join(toolsDirectory, file));
 
             // Si el archivo tiene un tool_config, agregarlo
             if (tool.tool_config) {
-                tool_data.tool_configs.push(tool.tool_config); // Agregar configuración de herramienta
+                tool_data.tool_configs.push(tool.tool_config);
             }
 
             // Mapear todas las funciones exportadas
             Object.keys(tool).forEach(funcName => {
-                const attribute = tool[funcName];
-                // Comprobar si es una función y no es un método privado
-                if (typeof attribute === 'function' && !funcName.startsWith("__")) {
-                    tool_data.function_map[funcName] = attribute;  // Guardar en function_map
+                if (typeof tool[funcName] === 'function') {
+                    tool_data.function_map[funcName] = tool[funcName];
                 }
             });
         }
     });
 
-    return tool_data; // Retornar los datos de las herramientas
+    return tool_data;
 };
 
 // Exportar funciones y cliente OpenAI
