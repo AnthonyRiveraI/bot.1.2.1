@@ -14,6 +14,8 @@ app.use(express.json());
 
 connectDB();
 const VALID_TOKEN = process.env.VALID_TOKEN;
+tool_data = load_tools_from_directory('tools')
+
 
 // Middleware para verificar la autenticación del token
 const verifyHeaders = (req, res, next) => {
