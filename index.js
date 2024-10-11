@@ -11,6 +11,14 @@ const { client, addThread, checkRunStatus, processToolCalls } = require('./coreF
 const { load_tools_from_directory } = require('./tools'); // Importar cliente y funciones
 const app = express();
 app.use(express.json());
+const path = require('path');
+const { load_tools_from_directory } = require('./loadTools');
+const toolsDirectory = path.join(__dirname, 'tools');
+const { tool_configs, function_map } = load_tools_from_directory(toolsDirectory);
+// Ahora puedes usar tool_configs y function_map
+console.log('Configuraciones de herramientas:', tool_configs);
+console.log('Funciones disponibles:', Object.keys(function_map));
+
 
 connectDB();
 const VALID_TOKEN = process.env.VALID_TOKEN;
