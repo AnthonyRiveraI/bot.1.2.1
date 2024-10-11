@@ -17,7 +17,7 @@ const connectDB = async () => {
 const ThreadSchema = new mongoose.Schema({
   thread_id: String,
   platform: String,
-  phone_number: String,
+  username: String,
   timestamp: Date,
   status: String,
 });
