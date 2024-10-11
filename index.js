@@ -7,7 +7,8 @@ require("dotenv").config();
 console.log(process.env.MONGO_URI);
 const { connectDB } = require('./db');
 const { Thread } = require('./db');  
-const { client, addThread, checkRunStatus, processToolCalls } = require('./coreFunctions'); // Importar cliente y funciones
+const { client, addThread, checkRunStatus, processToolCalls } = require('./coreFunctions');
+const { load_tools_from_directory } = require('./tools'); // Importar cliente y funciones
 const app = express();
 app.use(express.json());
 
