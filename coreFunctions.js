@@ -194,7 +194,7 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
 };
 
 
-const loadToolsFromDirectory = (directory) => {
+const load_tools_from_directory = (directory) => {
     const tool_data = { tool_configs: [], function_map: {} };
 
     // Leer todos los archivos del directorio
