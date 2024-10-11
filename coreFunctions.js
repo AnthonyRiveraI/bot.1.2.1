@@ -1,15 +1,13 @@
 const express = require("express");
-require("dotenv").config(); 
+require("dotenv").config();
 const OpenAI = require("openai");
 const semver = require('semver');
-const app = express();
-app.use(express.json());
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-
-
+const app = express();
+app.use(express.json());
 
 const OPENAI_API_KEY = process.env.OPEN_AI_KEY_ASISTANCE;
 const ASSISTANT_ID = process.env.ASSISTANT_ID;
@@ -25,24 +23,23 @@ if (!OPENAI_API_KEY) {
     throw new Error("No se encontró la clave API de OpenAI en las variables de entorno");
 }
 
-// Middleware para verificar la clave API personalizada (CUSTOM_API_KEY)
+// Middleware para verificar la clave API personalizada
 const verifyApiKey = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
-    
+
     if (apiKey !== CUSTOM_API_KEY) {
-      console.log(`Clave API inválida: ${apiKey}`);
-      return res.status(401).json({ error: 'No autorizado: clave API inválida' });
+        console.log(`Clave API inválida: ${apiKey}`);
+        return res.status(401).json({ error: 'No autorizado: clave API inválida' });
     }
-    
+
     next();
 };
-
 
 // Función para obtener la hora actual desde la API de World Time
 const getCurrentTime = async (timezone = 'America/Lima') => {
     return new Promise((resolve, reject) => {
         const url = `https://worldtimeapi.org/api/timezone/${timezone}`;
-        
+
         https.get(url, (res) => {
             let data = '';
 
@@ -56,7 +53,7 @@ const getCurrentTime = async (timezone = 'America/Lima') => {
                 try {
                     const parsedData = JSON.parse(data);
                     if (res.statusCode === 200) {
-                        resolve(parsedData.datetime);  // Extraer la hora actual
+                        resolve(parsedData.datetime); // Extraer la hora actual
                     } else {
                         reject(new Error(`Error en la API de World Time: ${parsedData.message}`));
                     }
@@ -69,8 +66,6 @@ const getCurrentTime = async (timezone = 'America/Lima') => {
         });
     });
 };
-
-
 
 // Función para agregar un hilo a la base de datos
 async function addThread(thread_id, platform, username) {
@@ -90,7 +85,7 @@ async function addThread(thread_id, platform, username) {
     }
 }
 
-// Función para verificar el estado de la ejecución (run)
+// Función para verificar el estado de la ejecución
 async function checkRunStatus(client, thread_id, run_id, tool_data) {
     try {
         if (!thread_id || !run_id) {
@@ -105,22 +100,22 @@ async function checkRunStatus(client, thread_id, run_id, tool_data) {
         throw error;
     }
 }
+
 // Función para limpiar contenido en formato Markdown
 function cleanMarkdown(text) {
-    // Eliminar encabezados de Markdown (líneas que empiezan con #)
+    // Eliminar encabezados de Markdown
     text = text.replace(/^#+\s*/gm, '');
-
-    // Eliminar negritas con asteriscos (e.g., **texto en negritas**)
+    // Eliminar negritas con asteriscos
     text = text.replace(/\*\*(.*?)\*\*/g, '$1');
-
-    // Eliminar enlaces en formato Markdown (e.g., [texto](url))
+    // Eliminar enlaces en formato Markdown
     text = text.replace(/\[.*?\]\((.*?)\)/g, '$1');
-
     return text;
 }
+
+// Procesar llamadas a herramientas
 const processToolCalls = async (client, thread_id, run_id, tool_data) => {
     const startTime = Date.now();
-    while (Date.now() - startTime < 8000) {  // Límite de 8 segundos
+    while (Date.now() - startTime < 8000) { // Límite de 8 segundos
         const runStatus = await client.beta.threads.runs.retrieve(thread_id, run_id);
         console.log(`Checking run status: ${runStatus.status}`);
 
@@ -128,8 +123,8 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
             const messages = await client.beta.threads.messages.list(thread_id);
 
             // Verificar que existan mensajes y que la estructura sea correcta
-            if (!messages.data || messages.data.length === 0 || 
-                !messages.data[0].content || !messages.data[0].content[0] || 
+            if (!messages.data || messages.data.length === 0 ||
+                !messages.data[0].content || !messages.data[0].content[0] ||
                 !messages.data[0].content[0].text || !messages.data[0].content[0].text.value) {
                 console.error('Error: Estructura inesperada en los mensajes');
                 return { response: "error", status: "failed" };
@@ -140,8 +135,8 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
 
             // Limpiar el contenido del mensaje
             messageContent = cleanMarkdown(messageContent);
-            messageContent = messageContent.replace(/【.*?†.*?】/g, '');  // Eliminar cualquier referencia extraña
-            messageContent = messageContent.replace(/\s+/g, ' ').trim();  // Eliminar espacios extra
+            messageContent = messageContent.replace(/【.*?†.*?】/g, ''); // Eliminar cualquier referencia extraña
+            messageContent = messageContent.replace(/\s+/g, ' ').trim(); // Eliminar espacios extra
 
             console.log(`Message content after cleaning: ${messageContent}`);
 
@@ -151,7 +146,7 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
         if (runStatus.status === 'requires_action') {
             console.log("Run requires action, handling...");
             for (const toolCall of runStatus.required_action.submit_tool_outputs.tool_calls) {
-                const functionName = toolCall.function.name;  // Usar nombre descriptivo
+                const functionName = toolCall.function.name;
 
                 let args;
                 try {
@@ -193,6 +188,7 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
     return { response: "timeout", status: "timeout" };
 };
 
+// Cargar herramientas desde el directorio
 const loadToolsFromDirectory = (directory) => {
     const tool_data = { tool_configs: [], function_map: {} };
 
@@ -226,7 +222,7 @@ module.exports = {
     addThread,
     checkRunStatus,
     processToolCalls,
-    client,  // Usamos el cliente OpenAI inicializado
+    client, // Usamos el cliente OpenAI inicializado
     verifyApiKey,
-    load_tools_from_directory  // Exportar middleware para verificar la clave API
+    loadToolsFromDirectory // Exportar middleware para verificar la clave API
 };
