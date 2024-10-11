@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 
 
+
+
 const OPENAI_API_KEY = process.env.OPEN_AI_KEY_ASISTANCE;
 const ASSISTANT_ID = process.env.ASSISTANT_ID;
 const CUSTOM_API_KEY = process.env.CUSTOM_API_KEY; // Esta es tu clave API personalizada
@@ -118,7 +120,7 @@ function cleanMarkdown(text) {
 }
 
 // Función para procesar las llamadas a herramientas en un run
-const processToolCalls = async (client, thread_id, run_id, toolData) => {
+const processToolCalls = async (client, thread_id, run_id, tool_data) => {
     const startTime = Date.now();
     while (Date.now() - startTime < 8000) {  // Límite de 8 segundos
         const runStatus = await client.beta.threads.runs.retrieve(thread_id, run_id);
@@ -149,7 +151,7 @@ const processToolCalls = async (client, thread_id, run_id, toolData) => {
         if (runStatus.status === 'requires_action') {
             console.log("Run requires action, handling...");
             for (const toolCall of runStatus.required_action.submit_tool_outputs.tool_calls) {
-                const functionName = toolCall.function.name;
+                const function_name = toolCall.function.name;  // Usar nombre descriptivo
 
                 let args;
                 try {
@@ -159,8 +161,8 @@ const processToolCalls = async (client, thread_id, run_id, toolData) => {
                     args = {};
                 }
 
-                if (toolData.functionMap && toolData.functionMap[functionName]) {
-                    const functionToCall = toolData.functionMap[functionName];
+                if (tool_data.function_map && tool_data.function_map[function_name]) {
+                    const functionToCall = tool_data.function_map[function_name];
                     const output = await functionToCall(args);
                     await client.beta.threads.runs.submit_tool_outputs(thread_id, run_id, {
                         tool_outputs: [{
@@ -169,7 +171,7 @@ const processToolCalls = async (client, thread_id, run_id, toolData) => {
                         }]
                     });
                 } else {
-                    console.warn(`Function ${functionName} not found in tool data.`);
+                    console.warn(`Function ${function_name} not found in tool data.`);
                 }
             }
         }
@@ -188,12 +190,39 @@ const processToolCalls = async (client, thread_id, run_id, toolData) => {
 };
 
 
+// Función para cargar herramientas desde un directorio
+const load_tools_from_directory = (directory) => {
+    const tool_data = { tool_configs: [], function_map: {} };  // Usar siempre function_map
+
+    // Leer todos los archivos del directorio
+    fs.readdirSync(directory).forEach(file => {
+        if (file.endsWith('.js')) {
+            const tool = require(path.join(directory, file));
+
+            // Si el archivo tiene un tool_config, agregarlo
+            if (tool.tool_config) {
+                tool_data.tool_configs.push(tool.tool_config);
+            }
+
+            // Mapear todas las funciones exportadas
+            Object.keys(tool).forEach(funcName => {
+                if (typeof tool[funcName] === 'function') {
+                    tool_data.function_map[funcName] = tool[funcName];  // Guardar en function_map
+                }
+            });
+        }
+    });
+
+    return tool_data;
+};
+
+
 // Exportar funciones y cliente OpenAI
 module.exports = {
     addThread,
     checkRunStatus,
     processToolCalls,
-    client,  
+    client,  // Usamos el cliente OpenAI inicializado
     verifyApiKey,
-    loadToolsFromDirectory
+    load_tools_from_directory  // Exportar middleware para verificar la clave API
 };
