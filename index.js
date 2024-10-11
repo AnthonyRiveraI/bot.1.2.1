@@ -43,16 +43,16 @@ const chatLimiter = rateLimit({
 // Ruta para iniciar una nueva conversación
 app.get('/start', async (req, res) => {
     const platform = req.query.platform || 'Not Specified';
-    const phone_number = req.query.phone_number || 'Not Specified';
+    const username = req.query.username || 'Not Specified';
  
     try {
-        console.log(`Iniciando nueva conversación desde la plataforma: ${platform} para el usuario: ${phone_number}`);
+        console.log(`Iniciando nueva conversación desde la plataforma: ${platform} para el usuario: ${username}`);
 
         // Verificar si ya existe un thread para el usuario en la base de datos
-        const existingThread = await Thread.findOne({ phone_number, platform });
+        const existingThread = await Thread.findOne({ username, platform });
 
         if (existingThread) {
-            console.log(`Usando hilo existente con ID: ${existingThread.thread_id} para el usuario: ${phone_number}`);
+            console.log(`Usando hilo existente con ID: ${existingThread.thread_id} para el usuario: ${username}`);
             return res.status(200).json({ thread_id: existingThread.thread_id, message: 'Usando hilo existente' });
         }
         // Crear un nuevo thread en OpenAI
@@ -71,7 +71,7 @@ app.get('/start', async (req, res) => {
         const newThread = new Thread({
             thread_id: openAIThread.id,  // Usar el thread_id de OpenAI
             platform: platform,
-            phone_number: phone_number,
+            username: username,
             timestamp: new Date(currentTime),
             status: 'Arrived'
         });
