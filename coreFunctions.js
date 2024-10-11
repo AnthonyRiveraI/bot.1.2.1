@@ -119,7 +119,6 @@ function cleanMarkdown(text) {
     return text;
 }
 
-// Función para procesar las llamadas a herramientas en un run
 const processToolCalls = async (client, thread_id, run_id, tool_data) => {
     const startTime = Date.now();
     while (Date.now() - startTime < 8000) {  // Límite de 8 segundos
@@ -130,7 +129,9 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
             const messages = await client.beta.threads.messages.list(thread_id);
 
             // Verificar que existan mensajes y que la estructura sea correcta
-            if (!messages.data || !messages.data[0] || !messages.data[0].content || !messages.data[0].content[0]) {
+            if (!messages.data || messages.data.length === 0 || 
+                !messages.data[0].content || !messages.data[0].content[0] || 
+                !messages.data[0].content[0].text || !messages.data[0].content[0].text.value) {
                 console.error('Error: Estructura inesperada en los mensajes');
                 return { response: "error", status: "failed" };
             }
@@ -151,7 +152,7 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
         if (runStatus.status === 'requires_action') {
             console.log("Run requires action, handling...");
             for (const toolCall of runStatus.required_action.submit_tool_outputs.tool_calls) {
-                const function_name = toolCall.function.name;  // Usar nombre descriptivo
+                const functionName = toolCall.function.name;  // Usar nombre descriptivo
 
                 let args;
                 try {
@@ -161,17 +162,21 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
                     args = {};
                 }
 
-                if (tool_data.function_map && tool_data.function_map[function_name]) {
-                    const functionToCall = tool_data.function_map[function_name];
-                    const output = await functionToCall(args);
-                    await client.beta.threads.runs.submit_tool_outputs(thread_id, run_id, {
-                        tool_outputs: [{
-                            tool_call_id: toolCall.id,
-                            output: JSON.stringify(output)
-                        }]
-                    });
+                if (tool_data.function_map && tool_data.function_map[functionName]) {
+                    const functionToCall = tool_data.function_map[functionName];
+                    try {
+                        const output = await functionToCall(args);
+                        await client.beta.threads.runs.submit_tool_outputs(thread_id, run_id, {
+                            tool_outputs: [{
+                                tool_call_id: toolCall.id,
+                                output: JSON.stringify(output)
+                            }]
+                        });
+                    } catch (error) {
+                        console.error(`Error calling function ${functionName}: ${error.message}`);
+                    }
                 } else {
-                    console.warn(`Function ${function_name} not found in tool data.`);
+                    console.warn(`Function ${functionName} not found in tool data.`);
                 }
             }
         }
