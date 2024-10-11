@@ -5,11 +5,8 @@ const { currentTime, getCurrentTime } = require('./utility_tools/datetime');
 const axios = require('axios');  // Importamos axios
 require("dotenv").config();
 const path = require('path');
-const { connectDB } = require('./db');
-const { Thread } = require('./db');  
-const { client, addThread, checkRunStatus, processToolCalls } = require('./coreFunctions');
-const { load_tools_from_directory } = require('./tools'); // Importar cliente y funciones
-
+const { connectDB,Thread } = require('./db');
+const { client, addThread, checkRunStatus, processToolCalls,loadToolsFromDirectory } = require('./coreFunctions');
 const app = express();
 app.use(express.json());
 
@@ -17,7 +14,7 @@ const toolsDirectory = path.join(__dirname, 'tools');
 let tool_configs, function_map;
 
 try {
-    ({ tool_configs, function_map } = load_tools_from_directory(toolsDirectory));
+    ({ tool_configs, function_map } = loadToolsFromDirectory(toolsDirectory));
 } catch (error) {
     console.error('Error al cargar las herramientas:', error.message);
     process.exit(1);  // Salir si no se puede cargar las herramientas
@@ -154,8 +151,7 @@ app.post('/chat', chatLimiter, verifyHeaders, async (req, res) => {
         return res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
-
-app.post('/check', verifyHeaders, async (req, res) => {
+app.post('/check', async (req, res) => {
     const { thread_id, run_id } = req.body;
 
     if (!thread_id || !run_id) {
@@ -164,21 +160,11 @@ app.post('/check', verifyHeaders, async (req, res) => {
     }
 
     try {
-        const tool_data = {
-            function_map: {
-                conversation_summary_request: (args) => {
-                    // Implementa la lógica de la función aquí
-                    return { summary: "This is a placeholder summary." };
-                }
-                // Otras funciones que podrían ser necesarias
-            }
-        };
-        
         const result = await processToolCalls(client, thread_id, run_id, tool_data);
         return res.status(200).json(result);
     } catch (error) {
-        console.error('Error al verificar el estado del run:', error.message);
-        return res.status(500).json({ error: 'Error al verificar el estado de la ejecución' });
+        console.error('Error al procesar las llamadas de herramientas:', error);
+        return res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
