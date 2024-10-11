@@ -118,7 +118,6 @@ function cleanMarkdown(text) {
 
     return text;
 }
-
 const processToolCalls = async (client, thread_id, run_id, tool_data) => {
     const startTime = Date.now();
     while (Date.now() - startTime < 8000) {  // Límite de 8 segundos
@@ -195,9 +194,8 @@ const processToolCalls = async (client, thread_id, run_id, tool_data) => {
 };
 
 
-// Función para cargar herramientas desde un directorio
-const load_tools_from_directory = (directory) => {
-    const tool_data = { tool_configs: [], function_map: {} };  // Usar siempre function_map
+const loadToolsFromDirectory = (directory) => {
+    const tool_data = { tool_configs: [], function_map: {} };
 
     // Leer todos los archivos del directorio
     fs.readdirSync(directory).forEach(file => {
