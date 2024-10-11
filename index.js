@@ -138,7 +138,7 @@ app.post('/check', verifyHeaders, async (req, res) => {
     }
 
     try {
-        const toolData = {
+        const tool_data= {
             function_map: {
                 conversation_summary_request: (args) => {
                     // Implementa la lógica de la función aquí
@@ -147,7 +147,7 @@ app.post('/check', verifyHeaders, async (req, res) => {
                 // Otras funciones que podrían ser necesarias
             }
         };
-        const result = await processToolCalls(client, thread_id, run_id, toolData);
+        const result = await processToolCalls(client, thread_id, run_id, tool_data);
         return res.status(200).json(result);
     } catch (error) {
         console.error('Error al verificar el estado del run:', error.message);
