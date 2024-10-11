@@ -5,6 +5,9 @@ const semver = require('semver');
 const app = express();
 app.use(express.json());
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
 
 const OPENAI_API_KEY = process.env.OPEN_AI_KEY_ASISTANCE;
 const ASSISTANT_ID = process.env.ASSISTANT_ID;
@@ -190,6 +193,7 @@ module.exports = {
     addThread,
     checkRunStatus,
     processToolCalls,
-    client,  // Usamos el cliente OpenAI inicializado
-    verifyApiKey  // Exportar middleware para verificar la clave API
+    client,  
+    verifyApiKey,
+    loadToolsFromDirectory
 };
